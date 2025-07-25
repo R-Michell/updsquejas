@@ -338,11 +338,21 @@ Widget _buildStatCard(String title, String value, Color color, {bool isPercentag
                                 ),
                               ),
                               leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: true)),
-                              rightTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false)),
-                              topTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false)),
+                                 sideTitles: SideTitles(
+                                  showTitles: true,
+                                  interval: 1, // Muestra etiquetas de 1 en 1
+                                  getTitlesWidget: (value, meta) {
+                                    if (value % 1 == 0) {
+                                      return Text(
+                                        value.toInt().toString(),
+                                        style: const TextStyle(fontSize: 10),
+                                      );
+                                    }
+                                    return const SizedBox.shrink(); // Oculta valores decimales
+                                  },
+                                ),
+                              ),
+                              
                             ),
                             borderData: FlBorderData(show: false),
                           ),
