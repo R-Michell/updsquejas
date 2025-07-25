@@ -1,65 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Para acceder a los datos de Firestore
-import 'package:pdf/pdf.dart'; // Para manejar el formato PDF
-import 'package:pdf/widgets.dart' as pw; // Para construir widgets del PDF
-import 'package:printing/printing.dart'; // Para compartir o imprimir el PDF
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
-// Función que genera un reporte PDF con filtros aplicados
 Future<void> generatePdfReport(
   BuildContext context,
-  List<QueryDocumentSnapshot> quejas, // Lista de quejas obtenidas de Firestore
+  List<QueryDocumentSnapshot> quejas,
   List<String> selectedFacultades,
   List<String> selectedCategorias,
   List<String> selectedEstados,
 ) async {
-  final pdf = pw.Document(); // Crea un nuevo documento PDF
+  final pdf = pw.Document();
 
-  // Filtra las quejas según las facultades, categorías y estados seleccionados
   final filtradas = quejas.where((q) {
     final f = q['facultad'];
     final c = q['categoria'];
     final e = q['estado'];
     return (selectedFacultades.isEmpty || selectedFacultades.contains(f)) &&
-           (selectedCategorias.isEmpty || selectedCategorias.contains(c)) &&
-           (selectedEstados.isEmpty || selectedEstados.contains(e));
+        (selectedCategorias.isEmpty || selectedCategorias.contains(c)) &&
+        (selectedEstados.isEmpty || selectedEstados.contains(e));
   }).toList();
 
-  // Crea una nueva página en el PDF con el contenido del reporte
   pdf.addPage(
     pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
       build: (context) => [
-        // Título del reporte
         pw.Text('Reporte de Quejas', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 10),
 
-        // Información sobre los filtros aplicados
-        pw.Text('Facultades seleccionadas: ${selectedFacultades.join(', ')}'),
-        pw.Text('Categorías seleccionadas: ${selectedCategorias.join(', ')}'),
-        pw.Text('Estados seleccionados: ${selectedEstados.join(', ')}'),
+        pw.Text('Facultades seleccionadas: ${selectedFacultades.isNotEmpty ? selectedFacultades.join(', ') : 'Todas'}'),
+        pw.Text('Categorías seleccionadas: ${selectedCategorias.isNotEmpty ? selectedCategorias.join(', ') : 'Todas'}'),
+        pw.Text('Estados seleccionados: ${selectedEstados.isNotEmpty ? selectedEstados.join(', ') : 'Todos'}'),
         pw.SizedBox(height: 20),
 
-        // Tabla con los datos de las quejas filtradas
         pw.Table.fromTextArray(
+          border: pw.TableBorder.all(width: 0.5),
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+          cellStyle: pw.TextStyle(fontSize: 10),
+          cellAlignment: pw.Alignment.centerLeft,
+          headerAlignment: pw.Alignment.center,
+          columnWidths: {
+            0: pw.FlexColumnWidth(2.5), // Facultad
+            1: pw.FlexColumnWidth(1.5), // Categoría
+            2: pw.FlexColumnWidth(1.5), // Estado
+            3: pw.FlexColumnWidth(4),   // Descripción
+            4: pw.FlexColumnWidth(2),   // Fecha
+          },
           headers: ['Facultad', 'Categoría', 'Estado', 'Descripción', 'Fecha'],
           data: filtradas.map((q) {
-            return [
-              q['facultad'] ?? '',
-              q['categoria'] ?? '',
-              q['estado'] ?? '',
-              q['descripcion'] ?? '',
-              (q['fecha'] as Timestamp?)?.toDate().toString().split(' ')[0] ?? '',
-            ];
+            final facultad = q['facultad'] ?? '';
+            final categoria = q['categoria'] ?? '';
+            final estado = q['estado'] ?? '';
+            final descripcion = q['descripcion'] ?? '';
+            final fecha = (q['fecha'] != null && q['fecha'] is Timestamp)
+                ? (q['fecha'] as Timestamp).toDate().toString().split(' ')[0]
+                : '';
+            return [facultad, categoria, estado, descripcion, fecha];
           }).toList(),
-        )
+        ),
       ],
     ),
   );
 
-  final pdfBytes = await pdf.save(); // Guarda el documento como bytes
+  final pdfBytes = await pdf.save();
 
-  // Abre la opción para compartir o guardar el PDF generado
-  await Printing.sharePdf(
-    bytes: pdfBytes,
-    filename: 'reporte_quejas.pdf',
+  // Opción para compartir o guardar el PDF
+  await Printing.layoutPdf(
+    onLayout: (PdfPageFormat format) async => pdfBytes,
+    name: 'reporte_quejas.pdf',
   );
 }
