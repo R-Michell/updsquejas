@@ -12,7 +12,7 @@ class _FormularioQuejaPageState extends State<FormularioQuejaPage> {
   final _formKey = GlobalKey<FormState>();
   String _categoria = 'Académico';
   String _descripcion = '';
-  String _facultad = 'Facultad de Ingeniería'; // ✅ Valor predeterminado
+  String _facultad = 'Facultad de Ingeniería';
 
   final List<String> _categorias = [
     'Académico',
@@ -153,8 +153,11 @@ class _FormularioQuejaPageState extends State<FormularioQuejaPage> {
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
+                    if (value == null || value.trim().isEmpty) {
                       return 'Por favor ingresa una descripción';
+                    }
+                    if (value.trim().length < 10) {
+                      return 'La descripción debe tener al menos 10 letras';
                     }
                     return null;
                   },
